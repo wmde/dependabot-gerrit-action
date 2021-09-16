@@ -1,0 +1,1 @@
+See [test.yml](.github/workflows/test.yml) for example configuration
