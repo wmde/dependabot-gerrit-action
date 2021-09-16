@@ -1,0 +1,87 @@
+name: Dependabot to Gerrit action
+description: Pushes dependabot updates to gerrit
+
+inputs:
+
+  user:
+    description: 'Gerrit bot user'
+    required: true
+
+  email:
+    description: 'Gerrit bot email'
+    required: true
+
+  password:
+    description: 'Gerrit bot password'
+    required: true
+
+  dry_run:
+    description: 'Dont create anything'
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+
+      - name: Output information
+        shell: bash
+        run: |
+          git log --format=%B -n1
+          git diff --name-only HEAD~1 HEAD
+          git diff HEAD~1 HEAD
+
+      - name: Setup git config
+        shell: bash
+        run: |
+          git config user.name ${{ inputs.user }}
+          git config user.email ${{ inputs.email }} 
+
+      - name: Setup git remote
+        shell: bash
+        env:
+          DEPENDABOT_GERRIT_PASSWORD: ${{ inputs.password }}
+        run: |
+          GITREVIEW_PROJECT=$(sed -n '/project=/ { s///; s/\.git//; p; }' .gitreview)
+          GITREVIEW_HOST=$(sed -n '/host=/ s///p' .gitreview)
+
+          # Create the authenticated remote for gerrit
+          git remote add gerrit "https://addbot:${DEPENDABOT_GERRIT_PASSWORD}@${GITREVIEW_HOST}/r/a/${GITREVIEW_PROJECT}"
+
+
+      # Generate the "randomness" for the change id from the branch name
+      # This means that multiple alterations to the PR will submit to the same Gerrit change
+      # This will result in the exact same update having the same Change-Id across multiple Gerrit repos
+      - name: Alter commit
+        shell: bash
+        run: |
+          random=$(echo ${{github.sha}} | git hash-object --stdin)
+          GITHUB_EVENT=${{github.event}}
+
+          # Alter the commit message
+          MSG_OLD=$(git log --format=%B -n1)
+
+          # Check if we have event
+          if [ -z "${GITHUB_EVENT}" ]; then
+            MSG_PRE=$([[ "${{ github.event.action }}" == "closed" ]] && echo "Closed: " || true)
+            MSG_GH_PR="Pull Request: https://github.com/${{github.repository}}/pull/${{ github.event.number }}"
+          else
+            MSG_PRE=""
+            MSG_GH_PR=""
+          fi
+
+          MSG_CHANGE_ID="Change-Id: I${random}"
+          MSG_NEW=$(printf "$MSG_PRE$MSG_OLD\n$MSG_GH_PR\n$MSG_CHANGE_ID")
+          git commit --amend -m"$MSG_NEW"
+
+          # Also reset the author, per our git config
+          git commit --amend --no-edit --reset-author
+
+          # And output the final message
+          git log -n1
+
+      - name: Submit to Gerrit
+        shell: bash
+        run: |
+          COMMAND="git push gerrit HEAD:refs/for/${{ github.event.pull_request.base.ref }}%${{format('ready,m=Triggered_from_a_{1}_event_on_Github,hashtag=dependabot,hashtag={0}', join( github.event.pull_request.labels.*.name, ',hashtag='), github.event.action)}}"
+          $([[ "${{inputs.dry_run }}" == "true" ]] || $COMMAND)
+
