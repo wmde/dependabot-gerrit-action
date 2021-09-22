@@ -58,7 +58,9 @@ runs:
       - name: Alter commit
         shell: bash
         run: |
-          random=$(echo ${{github.sha}} | git hash-object --stdin)
+          random=$( echo ${{github.head_ref || github.sha }} | git hash-object --stdin)
+          echo $random
+
           GITHUB_EVENT=${{github.event}}
           # Alter the commit message
           MSG_OLD=$(git log --format=%B -n1)
