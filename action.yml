@@ -97,17 +97,14 @@ runs:
       - name: Abandon closed patch
         if: ${{ github.event.action == 'closed' }}
         shell: bash
-        env:
-          DEPENDABOT_GERRIT_PASSWORD: ${{ inputs.password }}
         run: |
-          # Project, host, and change id are added to the environment in prior steps
-          # Need to replace `/` with `%2F` in project name
-          GITREVIEW_PROJECT_ESCAPED=${env.GITREVIEW_PROJECT/\//%2F}
-          # See https://gerrit.wikimedia.org/r/Documentation/rest-api-changes.html#change-id for change ids, should
-          # be project~branch~id
-          GITREVIEW_CHANGE="${ GITREVIEW_PROJECT_ESCAPED }~${{ github.event.pull_request.base.ref }}~I${{ env.GITREVIEW_RANDOM_CHANGEID }}"
-          # See https://gerrit.wikimedia.org/r/Documentation/rest-api-changes.html#abandon-change for the format
-          COMMAND="curl -d 'message=Abandon closed patch' https://addbot:${DEPENDABOT_GERRIT_PASSWORD}@${{ env.GITREVIEW_HOST }}/r/a/changes/${GITREVIEW_CHANGE}/abandon"
+          PATCH_SET=$(ssh gerrit.wikimedia.org gerrit query --format=json "is:open change:$GITREVIEW_RANDOM_CHANGEID" | jq '.number | select(.)' | sed 's/$/,1/' | tr '\n' ' ')
+          if [ -z "$PATCH_SET" ]
+          then
+                COMMAND="echo PatchSet is already closed or non-existing."
+          else
+                COMMAND="ssh gerrit.wikimedia.org gerrit review --abandon $PATCH_SET"
+          fi
           $([[ "${{inputs.dry_run}}" == "true" ]] || $COMMAND)
 
 
