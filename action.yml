@@ -111,6 +111,6 @@ runs:
           echo "$GITREVIEW_PROJECT_ESCAPED"
           echo "$ABANDON_URL"
           COMMAND="curl -X POST --silent -u addbot:${DEPENDABOT_GERRIT_PASSWORD} $ABANDON_URL"
-          $([[ "${{inputs.dry_run}}" == "true" ]] || $COMMAND)
+          $([[ "${{inputs.dry_run}}" == "true" ]] || $COMMAND > /dev/null)
 
 
