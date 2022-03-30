@@ -43,6 +43,9 @@ runs:
         run: |
           GITREVIEW_PROJECT=$(sed -n '/project=/ { s///; s/\.git//; p; }' .gitreview)
           GITREVIEW_HOST=$(sed -n '/host=/ s///p' .gitreview)
+          # Make available in the abandon step as well, to avoid needing to recalculate
+          echo "GITREVIEW_PROJECT=${GITREVIEW_PROJECT}" >> $GITHUB_ENV
+          echo "GITREVIEW_HOST=${GITREVIEW_HOST}" >> $GITHUB_ENV
 
           # Create the authenticated remote for gerrit
           git remote add gerrit "https://addbot:${DEPENDABOT_GERRIT_PASSWORD}@${GITREVIEW_HOST}/r/a/${GITREVIEW_PROJECT}"
@@ -55,6 +58,9 @@ runs:
         shell: bash
         run: |
           random=$( echo ${{github.head_ref || github.sha }} | git hash-object --stdin)
+          # Make available in the abandon step as well, to avoid needing to recalculate
+          echo "GITREVIEW_RANDOM_CHANGEID=${random}" >> $GITHUB_ENV
+
           GITHUB_EVENT=${{github.event.number}}
 
           # Alter the commit message
@@ -87,5 +93,22 @@ runs:
         run: |
           COMMAND="git push gerrit HEAD:refs/for/${{ github.event.pull_request.base.ref }}%${{format('ready,m=Triggered_from_a_{1}_event_on_Github,hashtag=dependabot,hashtag={0}', join( github.event.pull_request.labels.*.name, ',hashtag='), github.event.action)}}"
           $([[ "${{inputs.dry_run}}" == "true" ]] || $COMMAND)
+
+      - name: Abandon closed patch
+        if: ${{ github.event.action == 'closed' }}
+        shell: bash
+        env:
+          DEPENDABOT_GERRIT_PASSWORD: ${{ inputs.password }}
+        run: |
+          # Project, host, and change id are added to the environment in prior steps
+          # Need to replace `/` with `%2F` in project name
+          GITREVIEW_PROJECT_ESCAPED=$(echo "${{env.GITREVIEW_PROJECT}}" | sed 's/\//%2F/g')
+          # See https://gerrit.wikimedia.org/r/Documentation/rest-api-changes.html#change-id for change ids, should
+          # be project~branch~id
+          GITREVIEW_CHANGE="$GITREVIEW_PROJECT_ESCAPED~${{ github.event.pull_request.base.ref }}~I${{ env.GITREVIEW_RANDOM_CHANGEID }}"
+          # See https://gerrit.wikimedia.org/r/Documentation/rest-api-changes.html#abandon-change for the format
+          ABANDON_URL=https://${{ env.GITREVIEW_HOST }}/r/a/changes/$GITREVIEW_CHANGE/abandon
+          COMMAND="curl -X POST --silent -u addbot:${DEPENDABOT_GERRIT_PASSWORD} $ABANDON_URL"
+          $([[ "${{inputs.dry_run}}" == "true" ]] || $COMMAND > /dev/null)
 
 
