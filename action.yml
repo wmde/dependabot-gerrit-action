@@ -102,7 +102,7 @@ runs:
         run: |
           # Project, host, and change id are added to the environment in prior steps
           # Need to replace `/` with `%2F` in project name
-          GITREVIEW_PROJECT_ESCAPED=${${{env.GITREVIEW_PROJECT}}//\//%2F}
+          GITREVIEW_PROJECT_ESCAPED=$(echo "${{env.GITREVIEW_PROJECT}}" | sed 's/\//%2F/g')
           # See https://gerrit.wikimedia.org/r/Documentation/rest-api-changes.html#change-id for change ids, should
           # be project~branch~id
           GITREVIEW_CHANGE="$GITREVIEW_PROJECT_ESCAPED~${{ github.event.pull_request.base.ref }}~I${{ env.GITREVIEW_RANDOM_CHANGEID }}"
