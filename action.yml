@@ -107,7 +107,7 @@ runs:
           # be project~branch~id
           GITREVIEW_CHANGE="$GITREVIEW_PROJECT_ESCAPED~${{ github.event.pull_request.base.ref }}~I${{ env.GITREVIEW_RANDOM_CHANGEID }}"
           # See https://gerrit.wikimedia.org/r/Documentation/rest-api-changes.html#abandon-change for the format
-          COMMAND="curl -d 'message=Abandon closed patch' https://addbot:${DEPENDABOT_GERRIT_PASSWORD}@${{ env.GITREVIEW_HOST }}/r/a/changes/$GITREVIEW_CHANGE/abandon"
+          COMMAND="curl https://addbot:${DEPENDABOT_GERRIT_PASSWORD}@${{ env.GITREVIEW_HOST }}/r/a/changes/$GITREVIEW_CHANGE/abandon"
           $([[ "${{inputs.dry_run}}" == "true" ]] || $COMMAND)
 
 
