@@ -102,12 +102,12 @@ runs:
         run: |
           # Project, host, and change id are added to the environment in prior steps
           # Need to replace `/` with `%2F` in project name
-          GITREVIEW_PROJECT_ESCAPED=${GITREVIEW_PROJECT/\//%2F}
+          GITREVIEW_PROJECT_ESCAPED=${env.GITREVIEW_PROJECT/\//%2F}
           # See https://gerrit.wikimedia.org/r/Documentation/rest-api-changes.html#change-id for change ids, should
           # be project~branch~id
-          GITREVIEW_CHANGE="${ GITREVIEW_PROJECT_ESCAPED }~${{ github.event.pull_request.base.ref }}~I${{ GITREVIEW_RANDOM_CHANGEID }}"
+          GITREVIEW_CHANGE="${ GITREVIEW_PROJECT_ESCAPED }~${{ github.event.pull_request.base.ref }}~I${{ env.GITREVIEW_RANDOM_CHANGEID }}"
           # See https://gerrit.wikimedia.org/r/Documentation/rest-api-changes.html#abandon-change for the format
-          COMMAND="curl -d 'message=Abandon closed patch' https://addbot:${DEPENDABOT_GERRIT_PASSWORD}@${{ GITREVIEW_HOST }}/r/a/changes/${GITREVIEW_CHANGE}/abandon"
+          COMMAND="curl -d 'message=Abandon closed patch' https://addbot:${DEPENDABOT_GERRIT_PASSWORD}@${{ env.GITREVIEW_HOST }}/r/a/changes/${GITREVIEW_CHANGE}/abandon"
           $([[ "${{inputs.dry_run}}" == "true" ]] || $COMMAND)
 
 
