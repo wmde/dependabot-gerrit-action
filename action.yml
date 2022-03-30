@@ -108,8 +108,6 @@ runs:
           GITREVIEW_CHANGE="$GITREVIEW_PROJECT_ESCAPED~${{ github.event.pull_request.base.ref }}~I${{ env.GITREVIEW_RANDOM_CHANGEID }}"
           # See https://gerrit.wikimedia.org/r/Documentation/rest-api-changes.html#abandon-change for the format
           ABANDON_URL=https://${{ env.GITREVIEW_HOST }}/r/a/changes/$GITREVIEW_CHANGE/abandon
-          echo "$GITREVIEW_PROJECT_ESCAPED"
-          echo "$ABANDON_URL"
           COMMAND="curl -X POST --silent -u addbot:${DEPENDABOT_GERRIT_PASSWORD} $ABANDON_URL"
           $([[ "${{inputs.dry_run}}" == "true" ]] || $COMMAND > /dev/null)
 
