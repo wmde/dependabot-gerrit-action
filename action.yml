@@ -81,7 +81,7 @@ runs:
 
           # Sanitize commit message if requested
           if [[ "${{inputs.sanitize_commit_message}}" == "true" ]]; then
-            MSG_OLD=${MSG_OLD//---/...}
+            MSG_OLD=$(sed ':begin;$!N;s/^---\n/----\n/;tbegin' <<< "$MSG_OLD")
           fi
 
           MSG_CHANGE_ID="Change-Id: I${random}"
