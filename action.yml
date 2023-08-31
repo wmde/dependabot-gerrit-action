@@ -20,7 +20,7 @@ inputs:
     required: false
 
   sanitize_commit_message:
-    description: "Replace '---' divider with '...' to avoid problems with gerrit's commit-msg hook"
+    description: "Replace '---' divider with '----' to avoid problems with gerrit's commit-msg hook"
     required: false
 
 runs:
